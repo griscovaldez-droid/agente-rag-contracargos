@@ -1,0 +1,73 @@
+Elección del modelo LLM (local vs. nube) y la base de datos vectorial usada para RAG
+
+Elección del modelo LLM (local vs. nube)
+Arquitectura del Agente y Selección de Modelos
+
+El agente principal opera de forma local mediante **Ollama**, priorizando la privacidad de los datos y la independencia tecnológica por encima del costo por token.
+
+* **Modelo de razonamiento:** `llama3.1:8b` (con soporte nativo para *tool calling*).
+* **Modelo de embeddings:** `nomic-embed-text` (768 dimensiones).
+* **Nota de rendimiento:** Se evaluó inicialmente `qwen2.5:14b`, pero consumía el 90% de la memoria del equipo de pruebas sin responder en tiempos útiles, por lo que se estandarizó en `llama3.1:8b`.
+
+ Matriz de Decisión: Local vs. Nube
+
+| Criterio | Local (Ollama) | Nube (OpenAI / Anthropic) | Peso / Justificación |
+| :--- | :--- | :--- | :--- |
+| **Costo** | Sin costo por token; requiere hardware (CPU/GPU) y energía. | Pago por token (gasto bajo para ~600 casos/mes). | **Bajo:** No es un factor decisivo dado el volumen actual. |
+| **Privacidad** | Los datos de *submerchants*, montos y contratos nunca salen de la infraestructura. | Envío de datos a terceros (requiere revisión legal y de políticas). | **Alto:** Se procesa información financiera y contractual sensible. |
+| **Independencia** | Control total sin dependencia de precios o cambios externos. | Sujeto a disponibilidad de API y deprecación de modelos. | **Medio** |
+| **Calidad de razonamiento** | Un modelo de 8B es menos fiable (puede omitir datos o devolver respuestas vacías). | Mayor capacidad de razonamiento out-of-the-box. | **Mitigado** mediante *guardrails*, umbrales de confianza y escalamiento humano. |
+| **Operación** | Requiere mantenimiento del servidor y del modelo local. | Sin mantenimiento de infraestructura. | **Costo asumido** por el equipo técnico. |
+
+---
+
+Estrategia de Vector Store y Embeddings
+
+* **Vector Store:** **Supabase** (PostgreSQL + `pgvector`). Ofrece capa gratuita inicial, filtrado por metadatos mediante SQL e integración nativa con **n8n**.
+* **Embeddings:** `nomic-embed-text` ejecutado localmente en Ollama (768 dimensiones), garantizando que los documentos no salgan de la red durante la vectorización.
+* **Fragmentación (*Chunking*):** Bloques de **800 caracteres** con solapamiento (*overlap*) de **100 caracteres** para preservar la integridad de cada cláusula contractual.
+* **Recuperación (*Retrieval*):** `top-k = 4` fragmentos expuestos al agente como la herramienta `consultar_politicas_contratos` (el agente decide de forma autónoma cuándo invocarla y qué consulta ejecutar).
+* **Metadatos:** Cada fragmento almacena su fuente (ej. `politicas-contracargos`), permitiendo citar el documento y la cláusula exacta, además de habilitar filtros si se incorporan nuevos documentos en el futuro.
+
+Configuración SQL en Supabase
+
+Ejecutar el siguiente script en el **SQL Editor** de Supabase para inicializar la extensión, la tabla y la función de búsqueda por similitud de coseno:
+
+```sql
+-- Habilitar extensión pgvector
+create extension if not exists vector;
+
+-- Crear tabla de documentos
+create table documents (
+  id bigserial primary key,
+  content text,
+  metadata jsonb,
+  embedding vector(768) -- nomic-embed-text = 768 dimensiones
+);
+
+-- Función de búsqueda semántica con filtro de metadatos
+create function match_documents (
+  query_embedding vector(768),
+  match_count int default null,
+  filter jsonb default '{}'
+) returns table (
+  id bigint,
+  content text,
+  metadata jsonb,
+  similarity float
+)
+language plpgsql as $$
+#variable_conflict use_column
+begin
+  return query
+  select
+    id,
+    content,
+    metadata,
+    1 - (documents.embedding <=> query_embedding) as similarity
+  from documents
+  where metadata @> filter
+  order by documents.embedding <=> query_embedding
+  limit match_count;
+end;
+$$;
