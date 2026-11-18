@@ -1,0 +1,27 @@
+Arquitectura y Flujo de Datos
+El flujo está dividido en tres grandes etapas: Ingesta y Validación, Análisis Cognitivo con Guardrails y Ejecución y Registro, además de una rama independiente para la Indexación de Documentos.
+1. Entradas y Enriquecimiento de Datos
+Nodo / Grupo	Función Principal
+Entrada 1: Webhook<br>`(POST /contracargo-nuevo)`	Recibe casos nuevos en tiempo real desde un formulario o evento externo. Responde con código HTTP `200` de inmediato (`onReceived`) para evitar bloqueos en el cliente.
+Entrada 2: Schedule + Google Sheets	Ejecución programada cada hora que lee las filas con `Estado = PENDIENTE` desde la hoja de cálculo de casos para procesamiento por lotes.
+Entrada 3: HTTP Request<br>`(ExchangeRate-API)`	Consulta el tipo de cambio actual USD/PEN (autenticado con API Key) para poder estandarizar montos y evaluar límites de autocobro en dólares.
+Normalizar y validar caso<br>`(Code)`	Unifica la estructura de datos proveniente de las dos fuentes de entrada y valida la existencia de campos obligatorios, formato de monto, moneda y tipo de cliente.
+IF `datos validos?`	Bifurcación de control: si faltan datos críticos, desvía el flujo para registrar el caso como `DATOS_INVALIDOS` sin consumir recursos de inferencia del LLM.
+IF `TC respondió OK?` + Set	Verifica el status code y la validez del tipo de cambio. Si la API externa falla, asigna un tipo de cambio de respaldo y deja una marca de advertencia en el registro.
+Enriquecer caso (USD)	Calcula y adjunta el campo `monto_usd` utilizando el tipo de cambio obtenido (real o de respaldo).
+---
+2. Inteligencia Artificial, RAG y Guardrails
+Nodo / Grupo	Función Principal
+AI Agent + Ollama (`llama3.1:8b`) + RAG	Consulta políticas internas y contratos almacenados vectorialmente en Supabase. Evalúa el caso y devuelve: `acción`, `confianza`, `cláusula` y `borrador` de respuesta. <br>(Nota: No utiliza Structured Output Parser; el formato JSON se exige vía prompt y se valida programáticamente).
+Validar salida y aplicar guardrails<br>`(Code)`	Parsea y extrae el JSON de la respuesta del agente. Actúa como una capa de seguridad determinista independiente del LLM. Fuerza el estado a `ESCALAR_HUMANO` si ocurre alguna de estas condiciones:<br>• Salida nula o JSON malformado.<br>• Acción fuera de las categorías permitidas.<br>• Nivel de confianza `< 0.75`.<br>• Monto del caso `> USD 5,000`.<br>• Decisión de cobro sin una cláusula contractual de respaldo.
+---
+3. Enrutamiento, Salidas y Manejo de Errores
+Nodo / Grupo	Función Principal
+Switch por acción	Enruta el flujo según la decisión validada hacia las ramas de: Cobro, Solicitud de Evidencia, Escalamiento Humano o Descarte.
+Preparar fila resultado / inválida<br>`(Code)`	Reconstruyen el objeto de datos con los nombres exactos de las columnas de Google Sheets antes de escribir. Esto es indispensable porque los nodos previos (como Gmail) sobrescriben el payload con metadatos del envío y no del caso original.
+Gmail (3 nodos) + Google Sheets	Ejecuta la acción real: envía el correo correspondiente al cliente o al analista asignado y actualiza la fila en Google Sheets mediante una operación Upsert usando `id_caso` como clave única (evitando duplicados).
+Error (3 nodos) + Google Sheets	Flujo global de captura de excepciones (`Error Trigger`) que registra y alerta ante cualquier fallo técnico no contemplado durante la ejecución.
+---
+4. Rama de Indexación (Base de Conocimiento RAG)
+Nodo / Grupo	Función Principal
+Indexación Documental<br>`(Manual, Google Drive, Splitter, Embeddings, Supabase)`	Flujo de mantenimiento que descarga políticas y contratos desde Google Drive, los fragmenta (chunking), genera sus vectores (embeddings) y los almacena en Supabase. Se ejecuta manualmente bajo demanda o cada vez que se actualizan los documentos normativos.
