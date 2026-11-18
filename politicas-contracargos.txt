@@ -1,0 +1,53 @@
+POLITICA DE GESTION Y COBRO DE CONTRACARGOS
+
+CAPITULO 1. ALCANCE Y DEFINICIONES
+
+Clausula 1.1 Alcance.
+Esta politica regula el traslado de contracargos recibidos de las redes de tarjetas y emisores hacia los clientes de la procesadora: submerchants, agrupadores y facilitadores de pagos.
+
+Clausula 1.2 Definiciones.
+Submerchant: comercio afiliado a traves de un agrupador o facilitador. Agrupador o facilitador: entidad que contrata con la procesadora y agrega a sus propios submerchants. Contracargo: reversion del monto de una transaccion solicitada por el titular de la tarjeta o el emisor.
+
+CAPITULO 2. RESPONSABILIDAD POR TIPO DE CLIENTE
+
+Clausula 2.1 Responsabilidad del agrupador o facilitador.
+El agrupador o facilitador responde ante la procesadora por todos los contracargos generados por sus submerchants. La procesadora cobra directamente al agrupador o facilitador, quien podra repetir contra su submerchant segun su propio contrato.
+
+Clausula 2.2 Responsabilidad del submerchant con contrato directo.
+Cuando el submerchant tiene contrato directo con la procesadora, responde por los contracargos de sus transacciones segun los motivos de los capitulos 3 y 4.
+
+CAPITULO 3. MOTIVOS TRASLADABLES AL CLIENTE
+
+Clausula 3.1 Transaccion no reconocida o fraude (motivos 4837 y 10.4).
+El contracargo por transaccion no reconocida por el titular o por fraude se traslada al cliente cuando la transaccion se proceso sin autenticacion 3D Secure. El cobro procede automaticamente cuando el caso esta completo.
+
+Clausula 3.2 Mercaderia o servicio no recibido (motivos 4855 y 13.1).
+El cliente puede presentar evidencia de entrega o prestacion del servicio dentro de 7 dias calendario desde la notificacion. Si el caso no incluye evidencia de entrega, se debe solicitar la evidencia al cliente antes de cobrar. Si vence el plazo sin evidencia, el contracargo se cobra al cliente.
+
+Clausula 3.3 Producto defectuoso o no conforme (motivos 4853 y 13.3).
+El cliente puede disputar el contracargo presentando evidencia de conformidad del producto o servicio dentro de 10 dias calendario. Mientras no exista esa evidencia, la accion es solicitarla.
+
+CAPITULO 4. MOTIVOS NO TRASLADABLES
+
+Clausula 4.1 Error de la procesadora.
+No se traslada al cliente ningun contracargo originado por un error de la procesadora, como cobros duplicados por fallas de procesamiento, montos mal capturados por la procesadora o transacciones procesadas fuera de linea sin autorizacion. En estos casos el contracargo es no cobrable.
+
+Clausula 4.2 Reembolso previo.
+Si el cliente demuestra que reembolso la transaccion antes del contracargo (motivo 13.6 o equivalente), el contracargo no se cobra.
+
+CAPITULO 5. LIMITES, COBRO Y NOTIFICACION
+
+Clausula 5.1 Limite de cobro automatico.
+Los contracargos de hasta USD 5,000 pueden cobrarse de forma automatica cuando existe una clausula aplicable clara. Los montos superiores a USD 5,000 requieren revision de un analista antes del cobro.
+
+Clausula 5.2 Casos que requieren revision humana.
+Se escalan a un analista: casos sin clausula aplicable, motivos no listados en esta politica, contratos con condiciones especiales, clientes con disputas legales abiertas y casos donde dos clausulas se contradicen.
+
+Clausula 5.3 Forma de cobro.
+El cobro se realiza como debito en la siguiente liquidacion del cliente.
+
+Clausula 5.4 Notificacion.
+Todo cobro se notifica por correo al contacto registrado del cliente, indicando el identificador del caso, monto, moneda y motivo. El cliente dispone de 5 dias habiles desde la notificacion para presentar objeciones con evidencia.
+
+Clausula 5.5 Moneda.
+Los montos en soles se convierten a dolares con el tipo de cambio del dia para comparar contra los limites de esta politica.
